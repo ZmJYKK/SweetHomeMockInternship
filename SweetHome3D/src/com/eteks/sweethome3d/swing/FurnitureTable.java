@@ -117,6 +117,7 @@ import com.eteks.sweethome3d.tools.OperatingSystem;
 import com.eteks.sweethome3d.tools.ResourceURLContent;
 import com.eteks.sweethome3d.viewcontroller.FurnitureController;
 import com.eteks.sweethome3d.viewcontroller.View;
+import com.lowagie.text.Table;
 
 /**
  * A table displaying home furniture.
@@ -723,14 +724,43 @@ public class FurnitureTable extends JTable implements View, Printable {
       });
   }
 
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex)
+          throws PrinterException {
+    return print(g, pageFormat, pageIndex, false);
+  }
+
   /**
    * Prints this component to make it fill <code>pageFormat</code> imageable size.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) throws PrinterException {
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex, boolean includeLvlColumn) throws PrinterException {
     // Create a printable column model from the column model of this table 
     // with printable renderers for each column
     DefaultTableColumnModel printableColumnModel = new DefaultTableColumnModel();
     TableColumnModel columnModel = getColumnModel();
+
+    List<TableColumn> viewableColumn = new ArrayList<TableColumn>();
+
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+      viewableColumn.add(columnModel.getColumn(i));
+    }
+
+    if (includeLvlColumn && columnModel instanceof FurnitureTableColumnModel) {
+
+      boolean showLevel = false;
+
+      for(TableColumn column: viewableColumn){
+        if(column.getIdentifier() == HomePieceOfFurniture.SortableProperty.LEVEL){
+          showLevel = true;
+          break;
+        }
+      }
+
+    if (!showLevel){
+      TableColumn lvlColumn = ((FurnitureTableColumnModel) columnModel).availableColumns.get(HomePieceOfFurniture.SortableProperty.LEVEL);
+      viewableColumn.add(lvlColumn);
+    }
+    }
+
     final DefaultTableCellRenderer defaultRenderer = new DefaultTableCellRenderer();
     defaultRenderer.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
     TableCellRenderer printableHeaderRenderer = new TableCellRenderer() {
@@ -750,8 +780,7 @@ public class FurnitureTable extends JTable implements View, Printable {
           return headerRendererLabel;
         }
       };
-    for (int columnIndex = 0, n = columnModel.getColumnCount(); columnIndex < n; columnIndex++) {
-      final TableColumn tableColumn = columnModel.getColumn(columnIndex);
+    for (final TableColumn tableColumn: viewableColumn){
       // Create a printable column from existing table column
       TableColumn printableColumn = new TableColumn();
       printableColumn.setIdentifier(tableColumn.getIdentifier());
